@@ -1,0 +1,32 @@
+# Laravel core
+/vendor/
+/node_modules/
+/.env
+/.env.*
+!.env.example
+
+# Ignore app folder (your cloned project)
+/app/
+
+# Storage & runtime
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/testing/*
+/storage/app/*
+!/storage/app/public
+
+# Cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Docker / OS
+docker-compose.yml
+*.log
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
