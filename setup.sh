@@ -62,6 +62,7 @@ docker compose exec app php artisan key:generate
 
 print_color "green" "Migrating database..."
 docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed
 
 print_color "green" "Fixing permissions..."
 docker compose exec app chmod -R 777 storage bootstrap/cache
