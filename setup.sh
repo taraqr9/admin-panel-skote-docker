@@ -2,18 +2,26 @@
 
 function print_color(){
   NC='\033[0m'
+
   case $1 in
     "green") COLOR='\033[0;32m' ;;
     "red") COLOR='\033[0;31m' ;;
     "yellow") COLOR='\033[1;33m' ;;
     *) COLOR='\033[0m' ;;
   esac
+
   echo -e "${COLOR}$2${NC}"
 }
 
-command -v docker >/dev/null 2>&1 || { print_color "red" "Docker not installed"; exit 1; }
+command -v docker >/dev/null 2>&1 || {
+  print_color "red" "Docker not installed"
+  exit 1
+}
 
-docker compose version >/dev/null 2>&1 || { print_color "red" "Docker Compose missing"; exit 1; }
+docker compose version >/dev/null 2>&1 || {
+  print_color "red" "Docker Compose missing"
+  exit 1
+}
 
 # Setup docker-compose.yml
 if [ ! -f docker-compose.yml ]; then
@@ -31,7 +39,7 @@ fi
 # Clone Laravel app
 if [ ! -d app ]; then
   print_color "green" "Cloning project..."
-  git clone git@github.com:taraqr9/admin-panel-skote.git app || exit 1
+  git clone git@git.bol-online.com:taraq/admin-panel-skote.git app || exit 1
 else
   print_color "yellow" "App already exists"
 fi
@@ -40,29 +48,45 @@ cd app || exit 1
 
 # Setup .env
 if [ ! -f .env ]; then
-  cp .env.example .env || { print_color "red" ".env.example missing"; exit 1; }
-
-  sed -i.bak 's/DB_HOST=.*/DB_HOST=mysql/' .env
-  sed -i.bak 's/DB_PORT=.*/DB_PORT=3306/' .env
-  sed -i.bak 's/DB_DATABASE=.*/DB_DATABASE=laravel/' .env
-  sed -i.bak 's/DB_USERNAME=.*/DB_USERNAME=laravel/' .env
-  sed -i.bak 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+  print_color "green" "Creating .env from .env.example..."
+  cp .env.example .env || {
+    print_color "red" ".env.example missing"
+    exit 1
+  }
+else
+  print_color "yellow" ".env already exists, updating DB values..."
 fi
 
+sed -i.bak 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+sed -i.bak 's/DB_HOST=.*/DB_HOST=mysql/' .env
+sed -i.bak 's/DB_PORT=.*/DB_PORT=3306/' .env
+sed -i.bak 's/DB_DATABASE=.*/DB_DATABASE=laravel/' .env
+sed -i.bak 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
+sed -i.bak 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+sed -i.bak 's/CACHE_STORE=.*/CACHE_STORE=file/' .env
+
 cd ..
+
+print_color "yellow" "Stopping old containers..."
+docker compose down
 
 print_color "green" "Starting containers..."
 docker compose up -d --build
 
+echo "Waiting for MySQL startup..."
+sleep 20
+
 print_color "green" "Installing dependencies..."
 docker compose exec app composer install
+
+echo "Clearing Laravel cache..."
+docker compose exec app php artisan optimize:clear
 
 print_color "green" "Generating key..."
 docker compose exec app php artisan key:generate
 
-print_color "green" "Migrating database..."
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed
+print_color "green" "Migrating and seeding database..."
+docker compose exec app php artisan migrate:fresh --seed
 
 print_color "green" "Fixing permissions..."
 docker compose exec app chmod -R 777 storage bootstrap/cache
