@@ -89,7 +89,14 @@ print_color "green" "Migrating and seeding database..."
 docker compose exec app php artisan migrate:fresh --seed
 
 print_color "green" "Fixing permissions..."
-docker compose exec app chmod -R 777 storage bootstrap/cache
+
+cd app || exit 1
+
+sudo chown -R $USER:www-data storage bootstrap/cache
+sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
+sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+cd ..
 
 print_color "green" "Done!"
 
